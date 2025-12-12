@@ -1,0 +1,94 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    transition: 0.4s;
+}
+
+:root {
+    --bg: #f1f1f1;
+    --card: #ffffff;
+    --text: #222;
+}
+
+body.dark {
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #fff;
+}
+
+.navbar {
+    width: 100%;
+    padding: 12px 25px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    backdrop-filter: blur(20px);
+    background: rgba(255,255,255,0.3);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.search {
+    padding: 10px;
+    width: 40%;
+    border-radius: 20px;
+    border: none;
+    outline: none;
+}
+
+.feed {
+    width: 600px;
+    margin: 30px auto;
+}
+
+.post {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 18px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+.post:hover {
+    transform: translateY(-5px);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+}
+
+.post-img {
+    width: 100%;
+    border-radius: 15px;
+    margin-bottom: 15px;
+}
+
+.post-actions button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 10px;
+    transition: 0.3s;
+}
+
+.post-actions button:hover {
+    background: rgba(0,0,0,0.1);
+}

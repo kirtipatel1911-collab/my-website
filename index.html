@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ChatterBox — High level UI</title>
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg: #f3f6fb;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --accent: #6c5ce7;
+      --glass: rgba(255,255,255,0.55);
+      --shadow: 0 6px 30px rgba(16,24,40,0.08);
+    }
+    .dark{
+      --bg: #0b0f14;
+      --card: #0f1720;
+      --muted: #9aa4b2;
+      --accent: #7c5cff;
+      --glass: rgba(255,255,255,0.03);
+      --shadow: 0 8px 40px rgba(2,6,23,0.6);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:linear-gradient(180deg,var(--bg) 0%, rgba(255,255,255,0.02) 100%);
+      color: #0b1220; transition:all .35s cubic-bezier(.2,.8,.2,1); -webkit-font-smoothing:antialiased;
+      padding:24px;
+    }
+
+    /* Layout */
+    .app{
+      max-width:1200px; margin:0 auto; display:grid; grid-template-columns:280px 1fr 340px; gap:24px; align-items:start;
+    }
+
+    /* NAV / SIDEBAR */
+    .sidebar{
+      position:sticky; top:24px; height:calc(100vh - 48px);
+      padding:18px; border-radius:16px; background:linear-gradient(180deg,var(--glass), rgba(255,255,255,0.02)); box-shadow:var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .brand{font-weight:700; letter-spacing:0.3px; font-size:20px; display:flex; align-items:center; gap:10px}
+    .nav-list{list-style:none; padding:14px 0; margin:14px 0 0 0}
+    .nav-list li{padding:10px 12px; border-radius:10px; display:flex; align-items:center; gap:10px; cursor:pointer; color:var(--muted)}
+    .nav-list li:hover{background:rgba(0,0,0,0.04)}
+    .profile-mini{display:flex; gap:12px; align-items:center; margin-top:20px}
+    .profile-mini img{width:54px; height:54px; border-radius:12px; object-fit:cover}
+
+    /* MAIN FEED */
+    .main{
+      position:relative;
+    }
+    .topbar{
+      display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px;
+    }
+    .search{flex:1; max-width:520px; display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:12px; background:var(--card); box-shadow:var(--shadow);}
+    .search input{border:0; outline:none; background:transparent; width:100%; font-size:14px}
+    .theme-btn{padding:8px 10px; border-radius:10px; cursor:pointer; border:0; background:transparent}
+
+    /* Post card */
+    .post{background:var(--card); border-radius:14px; box-shadow:var(--shadow); overflow:hidden; margin-bottom:22px; transition:transform .28s ease, box-shadow .28s ease}
+    .post:hover{transform:translateY(-6px)}
+    .post-head{display:flex; gap:12px; padding:14px}
+    .post-head img{width:56px; height:56px; border-radius:12px; object-fit:cover}
+    .post-head .meta{display:flex; flex-direction:column; justify-content:center}
+    .post-head h4{margin:0; font-size:16px}
+    .post-head p{margin:2px 0 0 0; color:var(--muted); font-size:13px}
+    .post-body img{width:100%; display:block; max-height:520px; object-fit:cover}
+    .post-actions{display:flex; align-items:center; gap:8px; padding:12px 14px}
+    .btn{border:0; background:transparent; padding:8px 10px; border-radius:10px; cursor:pointer}
+    .btn.like{display:inline-flex; gap:8px; align-items:center}
+    .likes-count{font-weight:600}
+
+    .post-footer{padding:0 14px 14px 14px; color:var(--muted); font-size:14px}
+
+    /* RIGHT COLUMN */
+    .rightcard{position:sticky; top:24px; height:calc(100vh - 48px); padding:18px; border-radius:16px; background:var(--card); box-shadow:var(--shadow)}
+    .suggest{display:flex; gap:12px; align-items:center; margin-bottom:12px}
+    .suggest img{width:52px; height:52px; border-radius:10px; object-fit:cover}
+
+    /* Responsive */
+    @media (max-width:1000px){
+      .app{grid-template-columns:1fr; padding:18px}
+      .sidebar{display:none}
+      .rightcard{display:none}
+    }
+
+    /* small micro-animations */
+    .pop{transform-origin:center; transition:transform .14s ease}
+    .pop:active{transform:scale(.92)}
+
+    /* utility */
+    .muted{color:var(--muted)}
+    a{color:inherit; text-decoration:none}
+
+    /* tiny comment modal */
+    .modal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,6,23,0.4); z-index:60; opacity:0; pointer-events:none; transition:opacity .18s}
+    .modal.open{opacity:1; pointer-events:auto}
+    .modal-card{width:420px; background:var(--card); border-radius:12px; padding:14px; box-shadow:var(--shadow)}
+    .modal-card textarea{width:100%; height:90px; border-radius:8px; padding:10px; border:1px solid rgba(0,0,0,0.06); background:transparent}
+  </style>
+</head>
+<body>
+
+  <div class="app" id="app">
+
+    <aside class="sidebar" aria-label="sidebar">
+      <div class="brand">ChatterBox</div>
+      <nav>
+        <ul class="nav-list" role="list">
+          <li data-route="feed">🏠 Feed</li>
+          <li data-route="profile">👤 Profile</li>
+          <li data-route="explore">🔎 Explore</li>
+          <li id="darkToggle" style="margin-top:8px">🌙 Toggle Theme</li>
+          <li style="margin-top:16px">⚙️ Settings</li>
+        </ul>
+      </nav>
+
+      <div style="margin-top:24px; border-top:1px dashed rgba(0,0,0,0.06); padding-top:16px">
+        <div class="profile-mini">
+          <img src="https://i.pinimg.com/736x/62/ff/c6/62ffc68bfacdd04ccf0989e53127b5ea.jpg" alt="you">
+          <div>
+            <div style="font-weight:600">You — Kirti</div>
+            <div class="muted" style="font-size:13px">View profile</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <div class="topbar">
+        <div class="search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="5" stroke="currentColor" stroke-width="1.6"></circle></svg>
+          <input placeholder="Search people, tags, posts" id="searchInput">
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="btn pop" title="New post">➕</button>
+          <button class="btn pop" id="notifBtn">🔔</button>
+          <button class="theme-btn pop" id="themeBtn">🌙</button>
+        </div>
+      </div>
+
+      <section id="view">
+        <!-- dynamic views will be injected here -->
+      </section>
+
+    </main>
+
+    <aside class="rightcard">
+      <h4 style="margin-top:0">Suggested</h4>
+      <div class="suggest">
+        <img src="https://i.pinimg.com/736x/82/58/58/82585815342488ccd1beeeb3080b8661.jpg" alt="s1">
+        <div style="flex:1">
+          <div style="font-weight:600">Harry</div>
+          <div class="muted" style="font-size:13px">Photographer</div>
+        </div>
+        <button class="btn">Follow</button>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <div class="suggest">
+        <img src="https://i.pinimg.com/736x/77/df/49/77df498e8a6305f0535ead7cab90eac5.jpg" alt="s2">
+        <div style="flex:1">
+          <div style="font-weight:600">kp</div>
+          <div class="muted" style="font-size:13px">UX Designer</div>
+        </div>
+        <button class="btn">Follow</button>
+      </div>
+
+      <hr style="margin:18px 0; border:none; border-top:1px solid rgba(0,0,0,0.06)">
+
+      <div class="muted" style="font-size:13px">Made with ♥ — ChatterBox UI </div>
+
+    </aside>
+
+  </div>
+
+  <!-- comment modal -->
+  <div class="modal" id="modal">
+    <div class="modal-card">
+      <h4 style="margin:0 0 8px 0">Write a comment</h4>
+      <textarea id="commentText" placeholder="Say something nice..."></textarea>
+      <div style="display:flex;gap:8px; justify-content:flex-end; margin-top:10px">
+        <button class="btn" id="closeModal">Cancel</button>
+        <button class="btn" id="postComment">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Seed data for the demo */
+    const posts = [
+      {
+        id:1, author:'kitzz patel', handle:'@kitzz', role:'Creative Designer', avatar:'https://i.pinimg.com/736x/62/ff/c6/62ffc68bfacdd04ccf0989e53127b5ea.jpg',
+        img:'https://i.pinimg.com/736x/62/ff/c6/62ffc68bfacdd04ccf0989e53127b5ea.jpg', likes:145, caption:'Living the dream — photography & coffee.'
+      },
+      {
+        id:2, author:'Jessica Lee', handle:'@jessicalee', role:'Marketing Pro', avatar:'https://i.pinimg.com/736x/82/ce/41/82ce4171754b6751efcadf18a61b8ed3.jpg',
+        img:'https://i.pinimg.com/736x/82/ce/41/82ce4171754b6751efcadf18a61b8ed3.jpg', likes:78, caption:'Goal setter. Always growing.'
+      },
+      {
+        id:3, author:'Emma Davis', handle:'@emmadavis', role:'Food Explorer', avatar:'https://i.pinimg.com/736x/39/33/f6/3933f64de1724bb67264818810e3f2cb.jpg',
+        img:'https://i.pinimg.com/736x/1e/94/e6/1e94e6a5714248dc9417344c20433762.jpg', likes:210, caption:'Tried the new café in town — 10/10!'
+      }
+    ];
+
+    const root = document.getElementById('view');
+    const themeBtn = document.getElementById('themeBtn');
+    const darkToggle = document.getElementById('darkToggle');
+
+    // Routing (simple)
+    function routeTo(name){
+      document.querySelectorAll('[data-route]').forEach(n=>n.classList.remove('active'));
+      const el = document.querySelector('[data-route="'+name+'"]'); if(el) el.classList.add('active');
+
+      if(name==='feed') renderFeed();
+      if(name==='profile') renderProfile();
+      if(name==='explore') renderExplore();
+    }
+
+    // Render functions
+    function renderFeed(){
+      root.innerHTML = '';
+      posts.forEach(p=>{
+        const post = document.createElement('article'); post.className='post'; post.innerHTML = `
+          <div class="post-head">
+            <img src="${p.avatar}" alt="${p.author}" />
+            <div class="meta">
+              <h4>${p.author}</h4>
+              <p class="muted">${p.handle} · ${p.role}</p>
+            </div>
+          </div>
+          <div class="post-body"><img src="${p.img}" alt="post"></div>
+          <div class="post-actions">
+            <button class="btn like pop" data-id="${p.id}" aria-label="like-btn">❤️ <span class="likes-count">${p.likes}</span></button>
+            <button class="btn comment pop" data-id="${p.id}">💬 Comment</button>
+            <button class="btn pop">🔗 Share</button>
+          </div>
+          <div class="post-footer">${p.caption}</div>
+        `;
+        root.appendChild(post);
+      })
+    }
+
+    function renderProfile(){
+      root.innerHTML = `
+        <div style="display:flex; gap:18px; align-items:center; margin-bottom:18px">
+          <img src="https://i.pinimg.com/736x/62/ff/c6/62ffc68bfacdd04ccf0989e53127b5ea.jpg" style="width:160px; height:160px; border-radius:18px; object-fit:cover">
+          <div>
+            <h2 style="margin:0 0 8px 0">kitzz patel</h2>
+            <div class="muted">@kitzz · Creative Designer</div>
+            <div style="margin-top:12px; display:flex;gap:10px; align-items:center">
+              <div style="font-weight:700">145</div><div class="muted">Posts</div>
+              <div style="width:6px"></div>
+              <button class="btn">Edit Profile</button>
+              <button class="btn">Message</button>
+            </div>
+            <p style="margin-top:10px; color:var(--muted)">Photography Lover | Living the dream</p>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px">
+          ${posts.map(p=>`
+            <div class="post" style="margin:0">
+              <div class="post-body"><img src="${p.img}" style="height:180px; object-fit:cover"></div>
+              <div class="post-footer muted" style="padding:8px">${p.caption}</div>
+            </div>`).join('')}
+        </div>
+      `;
+    }
+
+    function renderExplore() {
+  const images = [
+    "https://i.pinimg.com/736x/54/ee/8c/54ee8c216a72e03fc6b1c81db73fbb48.jpg",
+    "https://i.pinimg.com/736x/66/1a/a0/661aa01be9f22cd49696501d462d84ae.jpg",
+    "https://i.pinimg.com/1200x/2d/05/3d/2d053d648b4c316662012a393662d6cd.jpg",
+    "https://i.pinimg.com/736x/f7/05/61/f705616f5faee80c3764152c58246f76.jpg",
+    "https://i.pinimg.com/736x/1c/8e/d5/1c8ed5e4fb3da32d8f2715d17d383b2f.jpg",
+    "https://i.pinimg.com/736x/0d/69/f5/0d69f51cf1f2c9bd275b0ccd5c5c1f28.jpg",
+    "https://i.pinimg.com/1200x/ed/da/93/edda9307817599d8d23d989bdb919404.jpg",
+    "https://i.pinimg.com/736x/4f/2d/dc/4f2ddcd4537be5b6012cf76d50c24d73.jpg"
+  ];
+
+  root.innerHTML = `
+    <h3 style="margin-top:0">Explore</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px">
+      ${images.map(src => `
+        <div style="height:160px; border-radius:10px; overflow:hidden">
+          <img src="${src}" style="width:100%; height:100%; object-fit:cover">
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+    
+
+    // initial
+    routeTo('feed');
+
+    // attach sidebar clicks
+    document.querySelectorAll('[data-route]').forEach(el=>{
+      el.addEventListener('click',()=>routeTo(el.getAttribute('data-route')));
+    });
+
+    // like handler (delegated)
+    document.addEventListener('click', e=>{
+      const like = e.target.closest('.like');
+      if(like){
+        const id = +like.dataset.id;
+        const p = posts.find(x=>x.id===id);
+        if(!p.liked){ p.likes+=1; p.liked=true; } else { p.likes-=1; p.liked=false; }
+        like.querySelector('.likes-count').textContent = p.likes;
+        like.style.transform = p.liked ? 'scale(1.06)' : 'scale(1)';
+        like.style.color = p.liked ? 'var(--accent)' : 'inherit';
+      }
+
+      const commentBtn = e.target.closest('.comment');
+      if(commentBtn){
+        openCommentModal(+commentBtn.dataset.id);
+      }
+    });
+
+    // comment modal logic
+    const modal = document.getElementById('modal');
+    const closeModal = document.getElementById('closeModal');
+    const postComment = document.getElementById('postComment');
+    let activeCommentPost = null;
+
+    function openCommentModal(postId){ activeCommentPost = postId; modal.classList.add('open'); document.getElementById('commentText').focus(); }
+    function closeComment(){ modal.classList.remove('open'); document.getElementById('commentText').value=''; activeCommentPost=null }
+
+    closeModal.addEventListener('click', closeComment);
+    postComment.addEventListener('click', ()=>{
+      const text = document.getElementById('commentText').value.trim();
+      if(!text) return alert('Please write something');
+      // In a real app we'd send to server — here we just close and show quick toast
+      alert('Comment posted: '+text);
+      closeComment();
+    });
+
+    // theme toggle (persist in localStorage)
+    const userTheme = localStorage.getItem('chatter_theme');
+    if(userTheme==='dark') document.documentElement.classList.add('dark');
+
+    function toggleTheme(){ document.documentElement.classList.toggle('dark'); localStorage.setItem('chatter_theme', document.documentElement.classList.contains('dark') ? 'dark':'light'); }
+    themeBtn.addEventListener('click', toggleTheme); darkToggle.addEventListener('click', toggleTheme);
+
+    // simple search that filters posts by author/handle
+    document.getElementById('searchInput').addEventListener('input', (e)=>{
+      const q = e.target.value.toLowerCase().trim();
+      if(!q) return routeTo('feed');
+      const filtered = posts.filter(p=> (p.author+p.handle+p.caption).toLowerCase().includes(q));
+      root.innerHTML = '';
+      filtered.forEach(p=>{
+        const post = document.createElement('article'); post.className='post'; post.innerHTML = `
+          <div class="post-head">
+            <img src="${p.avatar}" alt="${p.author}" />
+            <div class="meta">
+              <h4>${p.author}</h4>
+              <p class="muted">${p.handle} · ${p.role}</p>
+            </div>
+          </div>
+          <div class="post-body"><img src="${p.img}" alt="post"></div>
+          <div class="post-actions">
+            <button class="btn like pop" data-id="${p.id}" aria-label="like-btn">❤️ <span class="likes-count">${p.likes}</span></button>
+            <button class="btn comment pop" data-id="${p.id}">💬 Comment</button>
+            <button class="btn pop">🔗 Share</button>
+          </div>
+          <div class="post-footer">${p.caption}</div>
+        `;
+        root.appendChild(post);
+      })
+    });
+
+    // small accessibility: close modal with ESC
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeComment(); });
+
+    // make sure clicking outside modal closes it
+    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeComment(); });
+  </script>
+
+</body>
+</html>
